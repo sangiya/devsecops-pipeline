@@ -1,0 +1,75 @@
+name: Reusable - Quality Gate (orchestrator)
+
+# Composes the individual reusable scan/test workflows and adds one final
+# job that only succeeds if every required stage did. GitHub Actions'
+# `needs:` already fails downstream jobs when an upstream job fails --
+# this `gate` job exists to give a single, named required status check a
+# consuming repo's branch protection rule can point at, rather than
+# listing every individual job.
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        type: string
+        required: true
+      dockerfile-directory:
+        type: string
+        required: true
+      iac-directory:
+        type: string
+        required: true
+      python-version:
+        type: string
+        default: "3.11"
+      min-coverage:
+        type: number
+        default: 90
+
+jobs:
+  build-test:
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      python-version: ${{ inputs.python-version }}
+      min-coverage: ${{ inputs.min-coverage }}
+
+  sast-sca:
+    uses: ./.github/workflows/reusable-sast-sca.yml
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      python-version: ${{ inputs.python-version }}
+
+  secrets-scan:
+    uses: ./.github/workflows/reusable-secrets-scan.yml
+
+  sbom:
+    uses: ./.github/workflows/reusable-sbom.yml
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      python-version: ${{ inputs.python-version }}
+
+  container-scan:
+    uses: ./.github/workflows/reusable-container-scan.yml
+    with:
+      dockerfile-directory: ${{ inputs.dockerfile-directory }}
+
+  iac-scan:
+    uses: ./.github/workflows/reusable-iac-scan.yml
+    with:
+      directory: ${{ inputs.iac-directory }}
+      soft-fail: true # no committed IaC baseline yet in most consumers; report without blocking
+
+  gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [build-test, sast-sca, secrets-scan, sbom, container-scan, iac-scan]
+    if: always()
+    steps:
+      - name: Fail if any required stage failed
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ]; then
+            echo "One or more quality gate stages failed."
+            exit 1
+          fi
+          echo "All quality gate stages passed."

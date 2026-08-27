@@ -1,0 +1,38 @@
+name: Reusable - IaC Scan
+
+on:
+  workflow_call:
+    inputs:
+      directory:
+        description: Directory containing Terraform/Kubernetes/Helm manifests to scan
+        type: string
+        required: true
+      framework:
+        description: Checkov framework filter (e.g. terraform, kubernetes, helm), comma-separated
+        type: string
+        default: "terraform,kubernetes"
+      soft-fail:
+        description: If true, findings are reported but do not fail the job (useful while a baseline is established)
+        type: boolean
+        default: false
+
+jobs:
+  iac-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: ${{ inputs.directory }}
+          framework: ${{ inputs.framework }}
+          soft_fail: ${{ inputs.soft-fail }}
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov-results.sarif

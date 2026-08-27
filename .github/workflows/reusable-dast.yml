@@ -1,0 +1,51 @@
+name: Reusable - DAST
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Directory containing the Python project to start and scan
+        type: string
+        required: true
+      start-command:
+        description: Command to start the app in the background (must bind the given port)
+        type: string
+        required: true
+      target-port:
+        type: number
+        default: 8000
+      python-version:
+        type: string
+        default: "3.11"
+
+jobs:
+  dast:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-python-cached
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Install
+        run: pip install -e "."
+
+      - name: Start the target application
+        run: |
+          ${{ inputs.start-command }} &
+          echo "Waiting for the app to become ready on port ${{ inputs.target-port }}..."
+          for i in $(seq 1 30); do
+            curl -sf "http://localhost:${{ inputs.target-port }}/healthz" && break
+            sleep 1
+          done
+
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.13.0
+        with:
+          target: "http://localhost:${{ inputs.target-port }}"
+          fail_action: true

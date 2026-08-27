@@ -1,0 +1,38 @@
+name: Reusable - SBOM Generation
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Directory containing the Python project (pyproject.toml)
+        type: string
+        required: true
+      python-version:
+        type: string
+        default: "3.11"
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-python-cached
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Install project into a real environment (SBOM reflects what's actually installed)
+        run: pip install -e ".[dev]" cyclonedx-bom
+
+      - name: Generate CycloneDX SBOM from the environment
+        run: cyclonedx-py environment --output-format json --output-file sbom.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: ${{ inputs.working-directory }}/sbom.json

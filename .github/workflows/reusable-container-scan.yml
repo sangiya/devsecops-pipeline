@@ -1,0 +1,41 @@
+name: Reusable - Container Image Scan
+
+on:
+  workflow_call:
+    inputs:
+      dockerfile-directory:
+        description: Directory containing the Dockerfile to build and scan
+        type: string
+        required: true
+      image-tag:
+        description: Local tag to build the image under
+        type: string
+        default: "pipeline-scan-target:ci"
+      fail-on-severity:
+        description: Comma-separated severities that fail the job (trivy-action's severity input)
+        type: string
+        default: "CRITICAL,HIGH"
+
+jobs:
+  container-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t ${{ inputs.image-tag }} ${{ inputs.dockerfile-directory }}
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ inputs.image-tag }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: ${{ inputs.fail-on-severity }}
+          exit-code: "1"
+
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif

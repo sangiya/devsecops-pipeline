@@ -1,0 +1,70 @@
+name: Reusable - SAST and SCA
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Directory containing the Python project (pyproject.toml)
+        type: string
+        required: true
+      python-version:
+        type: string
+        default: "3.11"
+      fail-on-sast-severity:
+        description: Minimum bandit severity that fails the job (low, medium, high)
+        type: string
+        default: "medium"
+
+jobs:
+  sast:
+    name: SAST (bandit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-python-cached
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit
+        run: |
+          bandit -r src \
+            --severity-level ${{ inputs.fail-on-sast-severity }} \
+            -f json -o bandit-report.json
+          bandit -r src --severity-level ${{ inputs.fail-on-sast-severity }}
+
+      - name: Upload SAST report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: ${{ inputs.working-directory }}/bandit-report.json
+
+  sca:
+    name: SCA (pip-audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-python-cached
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Install project and pip-audit
+        run: |
+          pip install -e ".[dev]"
+          pip install pip-audit
+
+      - name: Run pip-audit
+        run: pip-audit --skip-editable

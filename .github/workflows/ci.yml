@@ -1,0 +1,22 @@
+name: CI
+
+# Example caller: exercises this repo's own reusable workflows against the
+# bundled demo-app, exactly as an external consumer repo would (the only
+# difference for an external repo is `uses: sangiya/devsecops-pipeline/.github/workflows/quality-gate.yml@main`
+# instead of the local `./` path used here).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-gate:
+    uses: ./.github/workflows/quality-gate.yml
+    with:
+      working-directory: demo-app
+      dockerfile-directory: demo-app
+      iac-directory: terraform-examples
+      python-version: "3.11"
+      min-coverage: 90
