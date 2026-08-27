@@ -15,6 +15,10 @@ on:
         description: Comma-separated severities that fail the job (trivy-action's severity input)
         type: string
         default: "CRITICAL,HIGH"
+      trivyignore-path:
+        description: Optional path to a .trivyignore file listing accepted, justified findings (e.g. no fix available upstream)
+        type: string
+        default: ""
 
 jobs:
   container-scan:
@@ -36,6 +40,7 @@ jobs:
           output: trivy-results.sarif
           severity: ${{ inputs.fail-on-severity }}
           exit-code: "1"
+          trivyignores: ${{ inputs.trivyignore-path }}
 
       - name: Upload SARIF to code scanning
         if: always()

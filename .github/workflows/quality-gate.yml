@@ -25,6 +25,10 @@ on:
       min-coverage:
         type: number
         default: 90
+      trivyignore-path:
+        description: Optional path to a .trivyignore file listing accepted, justified findings
+        type: string
+        default: ""
 
 jobs:
   build-test:
@@ -56,6 +60,7 @@ jobs:
       security-events: write
     with:
       dockerfile-directory: ${{ inputs.dockerfile-directory }}
+      trivyignore-path: ${{ inputs.trivyignore-path }}
 
   iac-scan:
     uses: ./.github/workflows/reusable-iac-scan.yml

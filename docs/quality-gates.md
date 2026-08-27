@@ -27,6 +27,21 @@ so a team can triage and fix its existing findings on its own timeline,
 then flip `soft-fail: false` once the backlog is clear — this pipeline
 does not make that decision for a consumer.
 
+## Why container scanning uses a `.trivyignore`, not just a threshold
+
+Base-image OS packages routinely carry CVEs with no fix published yet
+upstream — this repo's own `demo-app`, pinned to Debian 12 "bookworm" and
+kept current with `apt-get upgrade`, still had four such findings (see
+`demo-app/.trivyignore`) when this pipeline first ran for real. Lowering
+`fail-on-severity` to make those go away would also hide *fixable* future
+findings at the same severity; a `.trivyignore` accepts each one
+individually, by CVE ID, with a written justification and a date it was
+checked — visible in the file, not silently swallowed. Every finding still
+uploads to the repo's code scanning tab (`.trivyignore` only affects the
+gate's pass/fail, not what's reported) — see [that check-in's
+reasoning](../demo-app/.trivyignore) for the format. Re-check ignored CVEs
+periodically; the whole point is that they get removed once a fix ships.
+
 ## Why SBOM generation doesn't gate
 
 An SBOM is evidence, not a pass/fail check by itself — nothing in a
