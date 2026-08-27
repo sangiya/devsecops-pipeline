@@ -1,10 +1,9 @@
-FROM python:3.12-slim
+# Pinned to Debian 12 "bookworm" explicitly rather than the floating
+# python:3.12-slim tag, which currently resolves to Debian 13 "trixie" --
+# a newer release with a much shorter security-backport track record.
+# bookworm is Debian's actively-patched current stable release.
+FROM python:3.12-slim-bookworm
 
-# The base image's OS packages lag behind published CVE fixes between
-# python:3.12-slim releases; pulling latest security patches at build time
-# (rather than trusting whatever the tag happened to snapshot) is what
-# keeps the container-scan stage's Trivy findings about this repo's own
-# code, not the base image's own unpatched packages.
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 10001 appuser
