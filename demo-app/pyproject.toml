@@ -1,5 +1,8 @@
 [build-system]
-requires = ["setuptools>=68"]
+# >=78.1.1 specifically: below that, setuptools carries a known HIGH CVE
+# (CVE-2025-47273) that pip's isolated build environment would otherwise
+# reinstall regardless of what's upgraded in the outer environment.
+requires = ["setuptools>=78.1.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,6 +16,10 @@ authors = [{ name = "sangiya", email = "ssnan2947@gmail.com" }]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
+    # A transitive dependency of uvicorn[standard]; pinned explicitly above
+    # the version carrying a known HIGH CVE (GHSA-6v7p-g79w-8964) so pip's
+    # resolver can't silently settle on the vulnerable one.
+    "msgpack>=1.2.1",
 ]
 
 [project.optional-dependencies]
