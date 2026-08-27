@@ -32,7 +32,16 @@ jobs:
       - name: Build image
         run: docker build -t ${{ inputs.image-tag }} ${{ inputs.dockerfile-directory }}
 
-      - name: Scan image with Trivy
+      - name: Scan image with Trivy (human-readable log output)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ inputs.image-tag }}
+          format: table
+          severity: ${{ inputs.fail-on-severity }}
+          exit-code: "0" # this step is for a readable log only; the sarif step below is the actual gate
+          trivyignores: ${{ inputs.trivyignore-path }}
+
+      - name: Scan image with Trivy (SARIF for code scanning + gate)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ inputs.image-tag }}
