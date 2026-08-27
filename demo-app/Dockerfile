@@ -13,7 +13,12 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
 
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
+# setuptools ships with the base image at a version behind published CVE
+# fixes (CVE-2025-47273); msgpack is a transitive dependency of uvicorn
+# pulled in with a known-vulnerable version (GHSA-6v7p-g79w-8964). Both are
+# upgraded explicitly before installing the project so pip's resolver picks
+# already-patched versions rather than whatever the base image snapshotted.
+RUN pip install --no-cache-dir --upgrade pip setuptools msgpack && pip install --no-cache-dir .
 
 USER appuser
 EXPOSE 8000
