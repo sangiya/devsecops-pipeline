@@ -186,11 +186,25 @@ stages a consumer enables.
   stage's command works end-to-end.
 - Terraform in `terraform-examples/` passes `terraform validate` and
   `terraform fmt -check` (no AWS credentials needed).
-- **Not run locally:** Gitleaks, Trivy, Checkov, and OWASP ZAP, along with
-  the GitHub Actions runtime itself (workflow YAML was validated for
-  syntax with PyYAML, not executed by a real Actions runner) — none of
-  these tools were available in the environment this repo was built in.
-  `ci.yml` will exercise all of them for real on the first push to GitHub.
+- **The first real push to GitHub actually ran the full pipeline** (Gitleaks,
+  Trivy, Checkov, and OWASP ZAP were not available to test locally, so this
+  was the first real execution) and it found three genuine bugs, all now
+  fixed:
+  - `aquasecurity/trivy-action@0.28.0` was pinned to a version tag that
+    doesn't exist — corrected to the real latest release, `v0.36.0`.
+  - The container-scan and iac-scan jobs' SARIF upload steps failed with
+    `Resource not accessible by integration` — the default `GITHUB_TOKEN`
+    permissions don't include `security-events: write`. Fixed by adding an
+    explicit `permissions:` block to both jobs.
+  - The fresh Ubuntu runner's own bundled `setuptools` (79.0.1) had a real
+    CVE (`PYSEC-2026-3447`) — the same class of finding hit locally against
+    the dev venv's `pip`/`setuptools`. Fixed by upgrading pip/setuptools as
+    the first step of the SCA job, before installing the project.
+  - Checkov also caught a real, legitimate gap in `terraform-examples/main.tf`
+    (no lifecycle configuration on the example bucket) — fixed by adding one,
+    rather than being silently allowed through by `soft-fail: true`.
+  - Every other stage (build/test/coverage, SAST, secrets scan, SBOM
+    generation) passed on the very first real run, unmodified.
 
 ## Failure modes and disaster recovery
 

@@ -47,3 +47,15 @@ resource "aws_s3_bucket_logging" "example" {
   target_bucket = aws_s3_bucket.example.id
   target_prefix = "access-logs/"
 }
+
+resource "aws_s3_bucket_lifecycle_configuration" "example" {
+  bucket = aws_s3_bucket.example.id
+  rule {
+    id     = "expire-old-noncurrent-versions"
+    status = "Enabled"
+    filter {}
+    noncurrent_version_expiration {
+      noncurrent_days = 90
+    }
+  }
+}

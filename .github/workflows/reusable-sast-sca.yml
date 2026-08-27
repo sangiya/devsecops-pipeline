@@ -63,6 +63,11 @@ jobs:
 
       - name: Install project and pip-audit
         run: |
+          # The runner image's bundled pip/setuptools are frequently behind
+          # on known CVEs (PYSEC advisories against old setuptools versions
+          # are common); upgrading them first keeps pip-audit's findings
+          # about the *project's* dependencies rather than the toolchain.
+          python -m pip install --upgrade pip setuptools
           pip install -e ".[dev]"
           pip install pip-audit
 
