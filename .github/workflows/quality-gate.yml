@@ -51,11 +51,17 @@ jobs:
 
   container-scan:
     uses: ./.github/workflows/reusable-container-scan.yml
+    permissions:
+      contents: read
+      security-events: write
     with:
       dockerfile-directory: ${{ inputs.dockerfile-directory }}
 
   iac-scan:
     uses: ./.github/workflows/reusable-iac-scan.yml
+    permissions:
+      contents: read
+      security-events: write
     with:
       directory: ${{ inputs.iac-directory }}
       soft-fail: true # no committed IaC baseline yet in most consumers; report without blocking
