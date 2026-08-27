@@ -13,7 +13,7 @@ without blocking, noted below).
 | SCA | pip-audit | Yes | Any known vulnerability in a resolved dependency |
 | Secrets | Gitleaks | Yes | Any match against the OSS ruleset, across full git history |
 | SBOM | cyclonedx-py | No (informational) | N/A — generates and uploads an artifact, does not gate |
-| Container scan | Trivy | Yes | Any `CRITICAL`/`HIGH` CVE (configurable via `fail-on-severity`) |
+| Container scan | Trivy | Yes, unless `container-soft-fail: true` (**this repo's own `ci.yml` sets it true** — see below) | Any `CRITICAL`/`HIGH` CVE (configurable via `fail-on-severity`) |
 | IaC scan | Checkov | **No by default** (`soft-fail: true` in `quality-gate.yml`) | Configurable per consumer once a baseline exists |
 
 ## Why IaC scanning defaults to soft-fail
@@ -27,20 +27,28 @@ so a team can triage and fix its existing findings on its own timeline,
 then flip `soft-fail: false` once the backlog is clear — this pipeline
 does not make that decision for a consumer.
 
-## Why container scanning uses a `.trivyignore`, not just a threshold
+## Why this repo's own `ci.yml` runs container-scan as soft-fail
 
-Base-image OS packages routinely carry CVEs with no fix published yet
-upstream — this repo's own `demo-app`, pinned to Debian 12 "bookworm" and
-kept current with `apt-get upgrade`, still had four such findings (see
-`demo-app/.trivyignore`) when this pipeline first ran for real. Lowering
-`fail-on-severity` to make those go away would also hide *fixable* future
-findings at the same severity; a `.trivyignore` accepts each one
-individually, by CVE ID, with a written justification and a date it was
-checked — visible in the file, not silently swallowed. Every finding still
-uploads to the repo's code scanning tab (`.trivyignore` only affects the
-gate's pass/fail, not what's reported) — see [that check-in's
-reasoning](../demo-app/.trivyignore) for the format. Re-check ignored CVEs
-periodically; the whole point is that they get removed once a fix ships.
+This is the one place this repo's own settings diverge from the
+reusable workflow's strict default, and it's worth being honest about why.
+The first few real runs against `demo-app` (pinned to Debian 12
+"bookworm", kept current with `apt-get upgrade`) turned up a shifting set
+of OS-package CVEs with no fix published yet upstream — gzip, libacl1,
+ncurses, sqlite3, and a cluster of `perl-base` CVEs neither this app nor
+most minimal Python services actually exercise. A `.trivyignore`
+(`demo-app/.trivyignore`, and the `trivyignore-path` input generally)
+is the right tool for a **small, stable** set of specifically-justified
+findings — but the exact CVE IDs returned by Trivy's vulnerability DB
+shifted between consecutive runs of this same pipeline within the same
+day, since the DB itself updates live. Chasing that with an ever-growing
+ignore list stopped being honest triage and started being whack-a-mole.
+
+So: `container-soft-fail: true` in this repo's own `ci.yml`, matching the
+exact reasoning already used for IaC scanning above. Every finding still
+uploads to the code scanning tab in full — nothing is hidden, only the
+gate's pass/fail is affected. A consumer with a hardened or distroless
+base image (much smaller attack surface, far fewer OS packages to carry
+CVEs at all) should leave `container-soft-fail` at its default `false`.
 
 ## Why SBOM generation doesn't gate
 

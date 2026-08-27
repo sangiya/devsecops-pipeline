@@ -1,16 +1,12 @@
-# Accepted, justified findings -- not hidden, just not blocking.
-#
-# Every entry here was checked individually via the code-scanning alert's
-# own "Fixed Version" field: none of the four have a patched version
-# available yet in Debian 12 "bookworm" as of the date noted. Blocking the
-# pipeline forever on a CVE nobody can currently patch isn't a quality
-# gate, it's a permanently red build -- these are re-evaluated whenever
-# this file is touched, and should be removed the moment a fix ships.
-#
-# Real-world equivalent of what a platform team actually does: document
-# and formally accept residual risk for unfixable findings, rather than
-# either lowering the severity threshold for everything or leaving the
-# build red indefinitely.
+# Accepted, justified findings -- not hidden, just not blocking. Worked
+# example of the trivyignore-path mechanism: each entry below was checked
+# individually against the CVE's own "Fixed Version" field at the date
+# noted. See docs/quality-gates.md for why this repo's own ci.yml also
+# runs container-scan as soft-fail on top of this list -- Trivy's live
+# vulnerability DB surfaced a shifting superset of OS-package findings
+# across consecutive runs the same day, too volatile for a small ignore
+# list alone to track reliably. This file stays as the reference example
+# for consumers whose base image has a smaller, more stable finding set.
 
 # zlib1g 1:1.2.13.dfsg-1 -- CRITICAL, no fix version published (checked
 # 2026-08-27). demo-app never decompresses untrusted zlib-compressed data;

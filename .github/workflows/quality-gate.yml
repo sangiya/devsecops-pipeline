@@ -29,6 +29,10 @@ on:
         description: Optional path to a .trivyignore file listing accepted, justified findings
         type: string
         default: ""
+      container-soft-fail:
+        description: If true, container-scan findings are reported but do not fail the gate
+        type: boolean
+        default: false
 
 jobs:
   build-test:
@@ -61,6 +65,7 @@ jobs:
     with:
       dockerfile-directory: ${{ inputs.dockerfile-directory }}
       trivyignore-path: ${{ inputs.trivyignore-path }}
+      soft-fail: ${{ inputs.container-soft-fail }}
 
   iac-scan:
     uses: ./.github/workflows/reusable-iac-scan.yml

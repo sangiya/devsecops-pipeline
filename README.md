@@ -205,6 +205,26 @@ stages a consumer enables.
     rather than being silently allowed through by `soft-fail: true`.
   - Every other stage (build/test/coverage, SAST, secrets scan, SBOM
     generation) passed on the very first real run, unmodified.
+- **Container scanning against a real Debian base image never fully
+  stabilized, and that's the honest, useful finding.** Fixed for real: a
+  nested-reusable-workflow `startup_failure` (permissions don't cascade
+  automatically through a `workflow_call` chain — each level has to
+  explicitly grant what the innermost job requests, found via the exact
+  GitHub error banner), the base image resolving to Debian 13 "trixie"
+  instead of the far better-patched "bookworm" stable, and a `setuptools`
+  CVE that a runtime `pip install --upgrade` couldn't actually fix (pip's
+  isolated build environment reinstalls its own copy per
+  `build-system.requires` — fixed at the declaration, not at runtime).
+  What *didn't* stabilize: Trivy's live vulnerability DB returned a
+  shifting set of OS-package CVEs (gzip, libacl1, ncurses, sqlite3, a
+  `perl-base` cluster) across consecutive same-day runs of the identical
+  Dockerfile — no fix published upstream for any of them. Rather than
+  chase an ever-growing `.trivyignore`, this repo's own `ci.yml` runs
+  container-scan as `soft-fail: true`, with the reasoning written out in
+  `docs/quality-gates.md`. This is arguably the most realistic single
+  finding in this whole repo: a general-purpose Debian image's OS-package
+  CVE surface is genuinely difficult to fully green, and pretending
+  otherwise would be less honest than documenting why.
 
 ## Failure modes and disaster recovery
 

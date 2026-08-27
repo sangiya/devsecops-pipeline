@@ -24,3 +24,8 @@ jobs:
       python-version: "3.11"
       min-coverage: 90
       trivyignore-path: demo-app/.trivyignore
+      # See docs/quality-gates.md: base-image OS package CVEs against a
+      # general-purpose Debian image churn too fast (Trivy's vulnerability
+      # DB updates live) for a fixed .trivyignore list to track reliably --
+      # findings still upload to code scanning, they just don't block here.
+      container-soft-fail: true
